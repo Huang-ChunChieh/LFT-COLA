@@ -4,43 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>想像罐體驗 - 跳脫框架</title>
-    <!-- 引入 Tailwind CSS 進行快速 UI 排版 -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
     <style>
         body {
             background-color: #f5f5f7;
             overflow-x: hidden;
-            /* 防止翻轉時產生卷軸 */
             overscroll-behavior-y: none;
         }
-
-        /* --- 3D 空間與翻轉核心設定 --- */
-        .perspective-scene {
-            perspective: 1200px; 
-        }
-        .preserve-3d {
-            transform-style: preserve-3d;
-        }
-        .backface-hidden {
-            backface-visibility: hidden;
-        }
-        .rotate-y-180 {
-            transform: rotateY(180deg);
-        }
-
-        /* 👑 關鍵修復：當罐子翻轉到背面時，徹底關閉正面所有圖層的點擊攔截！ */
+        .perspective-scene { perspective: 1200px; }
+        .preserve-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+        
         #can-wrapper.rotate-y-180 .front-face-layer {
             pointer-events: none !important;
         }
 
-        /* --- 動畫時間設定 --- */
-        #can-wrapper {
-            transition: transform 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        }
-        #can-top, #can-bottom {
-            transition: transform 3s cubic-bezier(0.25, 1, 0.3, 1);
-        }
+        #can-wrapper { transition: transform 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+        #can-top, #can-bottom { transition: transform 3s cubic-bezier(0.25, 1, 0.3, 1); }
         #popping-card {
             transition: all 2s cubic-bezier(0.34, 1.56, 0.64, 1);
             transform-origin: center center;
@@ -48,20 +29,10 @@
             transform: scale(0.3) translateY(20%);
         }
 
-        /* --- 開罐狀態的觸發樣式 --- */
-        .is-open #vending-machine {
-            opacity: 0;
-            pointer-events: none;
-        }
-        .is-open #split-state {
-            opacity: 1;
-        }
-        .is-open #can-top {
-            transform: translateY(-5%); 
-        }
-        .is-open #can-bottom {
-            transform: translateY(5%);
-        }
+        .is-open #vending-machine { opacity: 0; pointer-events: none; }
+        .is-open #split-state { opacity: 1; }
+        .is-open #can-top { transform: translateY(-5%); }
+        .is-open #can-bottom { transform: translateY(5%); }
         .is-open #popping-card {
             opacity: 1;
             transform: translateY(-15%) rotate(-6deg) scale(1.1);
@@ -72,14 +43,11 @@
             transform: translateY(-18%) rotate(-3deg) scale(1.15);
         }
 
-        /* 呼吸燈提示動畫 */
         @keyframes pulse-hint {
             0%, 100% { filter: drop-shadow(0 0 0 rgba(239, 68, 68, 0)); }
             50% { filter: drop-shadow(0 0 15px rgba(239, 68, 68, 0.5)); }
         }
-        .hint-pulse {
-            animation: pulse-hint 2s infinite;
-        }
+        .hint-pulse { animation: pulse-hint 2s infinite; }
     </style>
 </head>
 <body class="w-screen min-h-screen flex flex-col items-center justify-center py-10 relative">
@@ -100,17 +68,12 @@
 
     <!-- 3D 場景容器 -->
     <div class="perspective-scene relative w-[280px] md:w-[320px]">
-        
-        <!-- 罐子主體 Wrapper (控制 3D 翻轉) -->
         <div id="can-wrapper" class="w-full preserve-3d relative">
-            
             <img src="販賣機.png" class="w-full h-auto opacity-0 pointer-events-none block" aria-hidden="true">
 
-            <!-- ================= FRONT: 正面 ================= -->
+            <!-- 正面：販賣機與開罐動畫 -->
             <div class="absolute inset-0 backface-hidden front-face-layer">
-                
                 <img src="販賣機.png" id="vending-machine" class="absolute inset-0 w-full h-full object-contain cursor-pointer transition-opacity duration-300 z-30 hint-pulse" alt="販賣機">
-
                 <div id="split-state" class="absolute inset-0 w-full h-full opacity-0 pointer-events-none transition-opacity duration-300 z-20">
                     <img src="卡片.png" id="popping-card" class="absolute top-[30%] left-[20%] w-[60%] object-contain z-10 pointer-events-none drop-shadow-xl" alt="恭喜小卡">
                     <img src="罐子_下.png" id="can-bottom" class="absolute bottom-0 w-full object-contain object-bottom z-20" alt="罐子下半部">
@@ -118,23 +81,16 @@
                 </div>
             </div>
 
-            <!-- ================= BACK: 背面 (九宮格測驗) ================= -->
+            <!-- 背面：九宮格測驗 -->
             <div class="absolute inset-0 backface-hidden rotate-y-180 z-40">
-                <!-- 九宮格底圖 -->
                 <img src="九宮格問題.png" class="absolute inset-0 w-full h-full object-contain" alt="九宮格測驗">
-                
-                <!-- 👑 定位微調區塊 -->
-                <!-- 如果按鈕沒對準圈圈，請修改這邊的 top, bottom, left, right 百分比 -->
-                <!-- 舉例：覺得框框整體太高，就把 top-[35%] 往下調整成 top-[38%] 試試看 -->
                 <div id="grid-buttons-container" class="absolute top-[52.5%] bottom-[18%] left-[19%] right-[15.5%] grid grid-cols-3 grid-rows-3 gap-2 md:gap-x-4 gap-y-1 z-60">
-                    <!-- JavaScript 將生成按鈕在這 -->
                 </div>
             </div>
-
         </div>
     </div>
 
-    <!-- ================= MODAL: 卡片放大燈箱 ================= -->
+    <!-- MODAL: 卡片放大燈箱 -->
     <div id="card-modal" class="fixed inset-0 bg-black/80 z-50 hidden flex-col items-center justify-center opacity-0 transition-opacity duration-300 backdrop-blur-md">
         <div id="modal-content" class="w-[85%] max-w-[360px] flex flex-col items-center transform scale-90 transition-transform duration-500">
             <img src="卡片.png" class="w-full h-auto rounded-2xl shadow-2xl mb-8" alt="完整小卡內容">
@@ -144,45 +100,37 @@
         </div>
     </div>
 
-    <!-- ================= MODAL: 題目與投票燈箱 ================= -->
+    <!-- MODAL: 題目與投票燈箱 -->
     <div id="question-modal" class="fixed inset-0 bg-black/80 z-[60] hidden flex-col items-center justify-center opacity-0 transition-opacity duration-300 backdrop-blur-md">
-        
         <div id="question-content" class="bg-[#e4e2dd] w-[90%] max-w-[340px] h-[80vh] max-h-[650px] rounded-[2.5rem] shadow-2xl p-6 flex flex-col relative transform scale-90 transition-transform duration-500 overflow-hidden border-[8px] border-[#1c1c1e]">
             
             <div class="flex items-center gap-3 mb-6 mt-2">
                 <div class="w-4 h-4 bg-[#5eb4f0] rounded-full shrink-0"></div>
                 <p class="text-gray-700 font-bold text-sm leading-tight">請根據心裡出現的<br>第一個答案作答</p>
+                <div id="live-indicator" class="ml-auto flex items-center gap-1 opacity-0 transition-opacity">
+                    <span class="relative flex h-2 w-2">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                    </span>
+                    <span class="text-[10px] font-bold text-green-600">LIVE</span>
+                </div>
             </div>
 
-            <!-- 視圖 1：題目與選項 (預設顯示) -->
+            <!-- 視圖 1：題目與選項 -->
             <div id="quiz-view" class="flex flex-col flex-1 transition-opacity duration-300">
-                <h2 id="quiz-title" class="text-[1.35rem] font-black text-gray-900 mb-6 leading-snug tracking-wide">
-                    載入中...
-                </h2>
-
-                <div id="quiz-options-container" class="flex flex-col gap-4 flex-1">
-                    <!-- 選項會生成在這裡 -->
-                </div>
-
+                <h2 id="quiz-title" class="text-[1.35rem] font-black text-gray-900 mb-6 leading-snug tracking-wide">載入中...</h2>
+                <div id="quiz-options-container" class="flex flex-col gap-4 flex-1"></div>
                 <div class="mt-auto pt-4 pb-2 flex justify-center opacity-0 transition-opacity duration-500 pointer-events-none" id="next-btn-container">
-                    <!-- 修改了這顆按鈕的點擊事件，改為觸發秀出解析 -->
                     <button class="bg-[#f4d03f] text-gray-900 font-black px-8 py-2 rounded-full shadow-md hover:bg-[#e5c234] transition-colors active:scale-95" onclick="showExplanation()">
                         Next >>>
                     </button>
                 </div>
             </div>
 
-            <!-- 視圖 2：解析畫面 (預設隱藏) -->
+            <!-- 視圖 2：解析畫面 -->
             <div id="explanation-view" class="hidden flex-col flex-1 opacity-0 transition-all duration-500 transform translate-y-4">
-                <h2 class="text-xl font-black text-[#b33225] border-b-2 border-[#b33225] pb-2 mb-4 inline-block self-start">
-                    測驗解析
-                </h2>
-                
-                <!-- 解析內容 -->
-                <p id="quiz-explanation" class="text-gray-800 text-[0.95rem] leading-relaxed font-medium flex-1 overflow-y-auto pr-2">
-                    載入中...
-                </p>
-
+                <h2 class="text-xl font-black text-[#b33225] border-b-2 border-[#b33225] pb-2 mb-4 inline-block self-start">測驗解析</h2>
+                <p id="quiz-explanation" class="text-gray-800 text-[0.95rem] leading-relaxed font-medium flex-1 overflow-y-auto pr-2">載入中...</p>
                 <div class="mt-auto pt-4 pb-2 flex justify-center">
                     <button class="bg-[#f4d03f] text-gray-900 font-black px-8 py-2 rounded-full shadow-md hover:bg-[#e5c234] transition-colors active:scale-95" onclick="closeQuestionModal()">
                         完成測驗
@@ -200,32 +148,35 @@
         </div>
     </div>
 
-    <!-- ================= 互動邏輯 (JavaScript) ================= -->
-    <script>
-        // ======= 題庫資料設定 (加入了 explanation 欄位) =======
+    <!-- 互動邏輯 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, updateDoc, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
         const quizData = {
             1: {
                 title: "為什麼我們不太會對東南亞移工說「謝謝你愛台灣」？",
                 options: [
-                    { text: "A. 移工是來工作的，跟「愛不愛台灣」沒關係", percent: 45 },
-                    { text: "B. 外國人來台灣可以幫忙台灣特色帶回去他們的國家，讓更多人知道台灣，這才算愛台灣吧", percent: 10 }
+                    { text: "A. 移工是來工作的，跟「愛不愛台灣」沒關係", baseVotes: 0 },
+                    { text: "B. 外國人來台灣可以幫忙台灣特色帶回去他們的國家，讓更多人知道台灣，這才算愛台灣吧", baseVotes: 0 }
                 ],
                 explanation: "這是因為我們常常在無意識中，將移工視為純粹的「勞動力提供者」，而忽略了他們對這塊土地也可能懷抱著情感與認同。打破這個慣性思考，有助於我們用更平等且溫暖的眼光來看待身邊不同國籍的夥伴。"
             },
             2: {
                 title: "如果今天路上遇到需要幫忙的外國人，你的直覺反應是？",
                 options: [
-                    { text: "A. 熱心上前用英文詢問是否需要協助", percent: 60 },
-                    { text: "B. 怕自己英文不好，默默走開", percent: 35 },
-                    { text: "C. 尋求旁邊的人一起幫忙", percent: 5 }
+                    { text: "A. 熱心上前用英文詢問是否需要協助", baseVotes: 0 },
+                    { text: "B. 怕自己英文不好，默默走開", baseVotes: 0 },
+                    { text: "C. 尋求旁邊的人一起幫忙", baseVotes: 0 }
                 ],
                 explanation: "台灣人普遍以熱情著稱，但有時候會因為「語言障礙」的慣性恐懼而卻步。其實，一個微笑、簡單的手勢，或是尋求翻譯軟體的幫忙，都能突破這層心理障礙，展現真正的台灣人情味。"
             },
             3: {
                 title: "你認為在台灣，哪一種文化最能代表台灣精神？",
                 options: [
-                    { text: "A. 夜市與在地小吃文化", percent: 55 },
-                    { text: "B. 人情味與互相幫忙的習慣", percent: 45 }
+                    { text: "A. 夜市與在地小吃文化", baseVotes: 0 },
+                    { text: "B. 人情味與互相幫忙的習慣", baseVotes: 0 }
                 ],
                 explanation: "無論是美食還是人情味，都是我們生活中的日常。但有趣的是，當我們被問到這個問題時，往往會陷入「二選一」的慣性。其實，包容多元並蓄的特質，才是台灣最核心的價值！"
             }
@@ -234,11 +185,80 @@
         const defaultQuiz = {
             title: "這是一道隨機的隱藏測試題，請根據直覺選擇！",
             options: [
-                { text: "A. 這是預設的選項 A", percent: 70 },
-                { text: "B. 這是預設的選項 B", percent: 30 }
+                { text: "A. 這是預設的選項 A", baseVotes: 0 },
+                { text: "B. 這是預設的選項 B", baseVotes: 0 }
             ],
             explanation: "這是一段預設的解析文字。當你點擊任何一個沒有特別設定題目的九宮格按鈕時，就會看到這個畫面。"
         };
+
+        // Firebase 專案設定
+        const firebaseConfig = {
+        apiKey: "AIzaSyAwMlp806fjRhZeiqjH3DhuAjEx5cfu790",
+        authDomain: "lft-cola.firebaseapp.com",
+        databaseURL: "https://lft-cola-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "lft-cola",
+        storageBucket: "lft-cola.firebasestorage.app",
+        messagingSenderId: "771802236298",
+        appId: "1:771802236298:web:285842f56210c7e3cb7473",
+        measurementId: "G-WCW0EB3K3X"
+        };
+        
+        let useFirebase = false;
+        let db, auth, appId = "imagine-can-campaign";
+        let currentUser = null;
+        const liveVotesCache = {};
+
+        try {
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            useFirebase = true;
+            
+            signInAnonymously(auth);
+
+            onAuthStateChanged(auth, (user) => {
+                currentUser = user;
+                if (user) {
+                    document.getElementById('live-indicator').classList.remove('opacity-0');
+                    setupRealtimeListeners();
+                }
+            });
+        } catch (e) {
+            console.warn("Firebase 初始化失敗，將使用本機預設數據。");
+        }
+
+        function setupRealtimeListeners() {
+            if (!currentUser) return;
+            const votesRef = collection(db, 'artifacts', appId, 'public', 'data', 'quiz_votes');
+            onSnapshot(votesRef, (snapshot) => {
+                snapshot.forEach(doc => {
+                    liveVotesCache[doc.id] = doc.data();
+                });
+            });
+        }
+
+        async function submitVoteToCloud(qId, selectedOptIndex, currentQuiz) {
+            if (!useFirebase || !currentUser) return;
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'quiz_votes', String(qId));
+            
+            try {
+                const docSnap = await getDoc(docRef);
+                if (!docSnap.exists()) {
+                    const initialData = {};
+                    currentQuiz.options.forEach((opt, idx) => {
+                        initialData[`opt_${idx}`] = opt.baseVotes;
+                    });
+                    initialData[`opt_${selectedOptIndex}`] += 1;
+                    await setDoc(docRef, initialData);
+                } else {
+                    await updateDoc(docRef, {
+                        [`opt_${selectedOptIndex}`]: increment(1)
+                    });
+                }
+            } catch (e) {
+                console.error("投票上傳失敗:", e);
+            }
+        }
 
         const canWrapper = document.getElementById('can-wrapper');
         const vendingMachine = document.getElementById('vending-machine');
@@ -248,38 +268,24 @@
         const flipBtn = document.getElementById('flip-btn');
         const titleArea = document.getElementById('title-area');
         const restartBtn = document.getElementById('restart-btn');
-        
         const questionModal = document.getElementById('question-modal');
         const questionContent = document.getElementById('question-content');
         const nextBtnContainer = document.getElementById('next-btn-container');
         const gridContainer = document.getElementById('grid-buttons-container');
-
-        // 視圖切換所需的 DOM
         const quizView = document.getElementById('quiz-view');
         const explanationView = document.getElementById('explanation-view');
 
         let isCanOpen = false;
 
-        // 👑 動態生成九宮格按鈕 (包含微調用邊框)
+        // 生成九宮格按鈕
         for(let i = 1; i <= 9; i++) {
             const btn = document.createElement('button');
-            
-            // ==========================================
-            // 💡【位置微調技巧與邊框開關】
-            // 目前我加入了 border-dashed border-2 border-blue-500 bg-blue-500/20 讓框框現形。
-            // 調整好位置（修改上方 HTML 的 top, bottom, left, right）後，
-            // 請將這行 className 替換回透明版：
-            // btn.className = "w-full h-full rounded-full bg-black/0 hover:bg-white/30 hover:backdrop-blur-sm transition-all duration-300 flex items-center justify-center group focus:outline-none focus:ring-4 focus:ring-white/50";
-            // ==========================================
-            
-            btn.className = "w-full h-full rounded-full border-2 border-dashed border-blue-500 bg-blue-500/20 hover:bg-blue-500/40 hover:backdrop-blur-sm transition-all duration-300 flex items-center justify-center group focus:outline-none focus:ring-4 focus:ring-white/50";
-            
-            btn.onclick = () => openQuestionModal(i);
+            btn.className = "w-full h-full rounded-full border-2 border-transparent bg-black/0 hover:bg-white/30 hover:backdrop-blur-sm transition-all duration-300 flex items-center justify-center group focus:outline-none focus:ring-4 focus:ring-white/50";
+            btn.onclick = () => window.openQuestionModal(i);
             btn.innerHTML = `<span class="opacity-0 group-hover:opacity-100 text-white font-bold text-xl drop-shadow-md transition-opacity pointer-events-none">GO</span>`;
             gridContainer.appendChild(btn);
         }
 
-        // 開罐與燈箱邏輯
         vendingMachine.addEventListener('click', () => {
             if (isCanOpen) return;
             canWrapper.classList.add('is-open');
@@ -314,23 +320,36 @@
             }, 300);
         });
 
-        function openQuestionModal(questionId) {
-            const currentQuiz = quizData[questionId] || defaultQuiz;
+        function animateValue(obj, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                obj.innerHTML = Math.floor(progress * (end - start) + start) + '%';
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else {
+                    obj.innerHTML = end + '%';
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
 
-            // 寫入題目與解析
+        window.openQuestionModal = function(questionId) {
+            const currentQuiz = quizData[questionId] || defaultQuiz;
             document.getElementById('quiz-title').innerText = currentQuiz.title;
             document.getElementById('quiz-explanation').innerText = currentQuiz.explanation;
 
             const optionsContainer = document.getElementById('quiz-options-container');
             optionsContainer.innerHTML = ''; 
             
-            currentQuiz.options.forEach(opt => {
+            currentQuiz.options.forEach((opt, index) => {
                 const optHtml = `
-                    <button class="quiz-option relative w-full bg-[#b33225] text-white text-left p-5 rounded-2xl shadow-sm transition-transform hover:scale-[1.02] active:scale-[0.98] overflow-hidden group" data-percent="${opt.percent}" onclick="selectOption(this)">
+                    <button class="quiz-option relative w-full bg-[#b33225] text-white text-left p-5 rounded-2xl shadow-sm transition-transform hover:scale-[1.02] active:scale-[0.98] overflow-hidden group" data-qid="${questionId}" data-index="${index}" onclick="window.selectOption(this)">
                         <div class="progress-bar absolute top-0 bottom-0 left-0 bg-[#8e281d] w-0 transition-all duration-1000 ease-out z-0"></div>
                         <div class="relative z-10 flex justify-between items-center gap-4">
                             <span class="option-text text-[0.9rem] font-medium leading-relaxed transition-colors duration-500">${opt.text}</span>
-                            <span class="percentage hidden font-black text-2xl drop-shadow-md">${opt.percent}%</span>
+                            <span class="percentage hidden font-black text-2xl drop-shadow-md">0%</span>
                         </div>
                     </button>
                 `;
@@ -338,8 +357,6 @@
             });
 
             nextBtnContainer.classList.add('opacity-0', 'pointer-events-none');
-
-            // 確保每次開啟都是顯示「題目視圖」，隱藏「解析視圖」
             quizView.classList.remove('hidden', 'opacity-0');
             quizView.classList.add('flex');
             explanationView.classList.remove('flex', 'opacity-100');
@@ -353,11 +370,27 @@
                 questionContent.classList.remove('scale-90');
                 questionContent.classList.add('scale-100');
             }, 10);
-        }
+        };
 
-        function selectOption(selectedBtn) {
+        window.selectOption = function(selectedBtn) {
             const allOptions = document.querySelectorAll('.quiz-option');
+            const qId = selectedBtn.getAttribute('data-qid');
+            const selectedOptIndex = parseInt(selectedBtn.getAttribute('data-index'));
+            const currentQuiz = quizData[qId] || defaultQuiz;
             
+            const liveDoc = liveVotesCache[qId];
+            let totalVotes = 0;
+            const currentVoteCounts = [];
+
+            currentQuiz.options.forEach((opt, idx) => {
+                let v = liveDoc ? (liveDoc[`opt_${idx}`] || opt.baseVotes) : opt.baseVotes;
+                if (idx === selectedOptIndex) v += 1; 
+                currentVoteCounts.push(v);
+                totalVotes += v;
+            });
+
+            submitVoteToCloud(qId, selectedOptIndex, currentQuiz);
+
             allOptions.forEach(btn => {
                 btn.removeAttribute('onclick');
                 btn.classList.remove('hover:scale-[1.02]', 'active:scale-[0.98]');
@@ -366,43 +399,41 @@
                 const textSpan = btn.querySelector('.option-text');
                 textSpan.classList.add('text-white/40');
                 
-                const percentValue = btn.getAttribute('data-percent');
+                const optIndex = parseInt(btn.getAttribute('data-index'));
+                const optVotes = currentVoteCounts[optIndex];
+                const percentValue = Math.round((optVotes / totalVotes) * 100);
+                
                 const progressBar = btn.querySelector('.progress-bar');
                 const percentText = btn.querySelector('.percentage');
                 
                 setTimeout(() => {
                     progressBar.style.width = percentValue + '%';
                     percentText.classList.remove('hidden');
+                    animateValue(percentText, 0, percentValue, 1000);
                 }, 50); 
             });
 
             setTimeout(() => {
                 nextBtnContainer.classList.remove('opacity-0', 'pointer-events-none');
             }, 800);
-        }
+        };
 
-        // 切換到解析畫面
-        function showExplanation() {
-            // 淡出題目
+        window.showExplanation = function() {
             quizView.classList.add('opacity-0');
-            
             setTimeout(() => {
-                // 隱藏題目，顯示解析區塊
                 quizView.classList.add('hidden');
                 quizView.classList.remove('flex');
                 
                 explanationView.classList.remove('hidden');
                 explanationView.classList.add('flex');
-                
-                // 延遲一點點再觸發淡入與向上滑入的動畫
                 setTimeout(() => {
                     explanationView.classList.remove('opacity-0', 'translate-y-4');
                     explanationView.classList.add('opacity-100', 'translate-y-0');
                 }, 50);
-            }, 300); // 等待題目淡出的時間
-        }
+            }, 300);
+        };
 
-        function closeQuestionModal() {
+        window.closeQuestionModal = function() {
             questionModal.classList.remove('opacity-100');
             questionModal.classList.add('opacity-0');
             questionContent.classList.remove('scale-100');
@@ -411,21 +442,18 @@
                 questionModal.classList.add('hidden');
                 questionModal.classList.remove('flex');
             }, 300);
-        }
+        };
 
         restartBtn.addEventListener('click', () => {
             isCanOpen = false;
-
             modal.classList.add('hidden', 'opacity-0');
             modal.classList.remove('flex', 'opacity-100');
             modalContent.classList.add('scale-90');
             modalContent.classList.remove('scale-100');
-
             questionModal.classList.add('hidden', 'opacity-0');
             questionModal.classList.remove('flex', 'opacity-100');
             questionContent.classList.add('scale-90');
             questionContent.classList.remove('scale-100');
-
             canWrapper.classList.remove('is-open', 'rotate-y-180');
             vendingMachine.classList.add('hint-pulse');
             titleArea.classList.remove('opacity-0');
