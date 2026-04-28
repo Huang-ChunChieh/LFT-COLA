@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>想像罐體驗 - 跳脫框架</title>
+    <!-- 引入 Tailwind CSS 進行快速 UI 排版 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        body {
+            background-color: #f5f5f7;
+            overflow-x: hidden;
+            /* 防止翻轉時產生卷軸 */
+            overscroll-behavior-y: none;
+        }
+
+        /* --- 3D 空間與翻轉核心設定 --- */
+        .perspective-scene {
+            perspective: 1200px; 
+        }
+        .preserve-3d {
+            transform-style: preserve-3d;
+        }
+        .backface-hidden {
+            backface-visibility: hidden;
+        }
+        .rotate-y-180 {
+            transform: rotateY(180deg);
+        }
+
+        /* 👑 關鍵修復：當罐子翻轉到背面時，徹底關閉正面所有圖層的點擊攔截！ */
+        #can-wrapper.rotate-y-180 .front-face-layer {
+            pointer-events: none !important;
+        }
+
+        /* --- 動畫時間設定 --- */
+        #can-wrapper {
+            transition: transform 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        #can-top, #can-bottom {
+            transition: transform 3s cubic-bezier(0.25, 1, 0.3, 1);
+        }
+        #popping-card {
+            transition: all 2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform-origin: center center;
+            opacity: 0;
+            transform: scale(0.3) translateY(20%);
+        }
+
+        /* --- 開罐狀態的觸發樣式 --- */
+        .is-open #vending-machine {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .is-open #split-state {
+            opacity: 1;
+        }
+        .is-open #can-top {
+            transform: translateY(-5%); 
+        }
+        .is-open #can-bottom {
+            transform: translateY(5%);
+        }
+        .is-open #popping-card {
+            opacity: 1;
+            transform: translateY(-15%) rotate(-6deg) scale(1.1);
+            cursor: pointer;
+            pointer-events: auto;
+        }
+        .is-open #popping-card:hover {
+            transform: translateY(-18%) rotate(-3deg) scale(1.15);
+        }
+
+        /* 呼吸燈提示動畫 */
+        @keyframes pulse-hint {
+            0%, 100% { filter: drop-shadow(0 0 0 rgba(239, 68, 68, 0)); }
+            50% { filter: drop-shadow(0 0 15px rgba(239, 68, 68, 0.5)); }
+        }
+        .hint-pulse {
+            animation: pulse-hint 2s infinite;
+        }
+    </style>
+</head>
+<body class="w-screen min-h-screen flex flex-col items-center justify-center py-10 relative">
+
+    <!-- 重新開始按鈕 -->
+    <button id="restart-btn" class="fixed top-4 right-4 z-[100] bg-white/80 backdrop-blur-md border border-gray-200 text-gray-700 hover:text-red-600 hover:bg-white hover:shadow-md px-4 py-2 rounded-full font-bold text-sm flex items-center gap-1 transition-all duration-300">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+        </svg>
+        重新開始
+    </button>
+
+    <!-- 標題區域 -->
+    <div id="title-area" class="text-center z-0 mb-8 transition-opacity duration-500">
+        <h1 class="text-3xl md:text-4xl font-black text-red-700 tracking-wider">想像罐體驗【方案A】</h1>
+        <p class="mt-2 text-gray-500 font-medium">請試著探索畫面中的元素...</p>
+    </div>
+
+    <!-- 3D 場景容器 -->
+    <div class="perspective-scene relative w-[280px] md:w-[320px]">
+        
+        <!-- 罐子主體 Wrapper (控制 3D 翻轉) -->
+        <div id="can-wrapper" class="w-full preserve-3d relative">
+            
+            <img src="販賣機.png" class="w-full h-auto opacity-0 pointer-events-none block" aria-hidden="true">
+
+            <!-- ================= FRONT: 正面 ================= -->
+            <div class="absolute inset-0 backface-hidden front-face-layer">
+                
+                <img src="販賣機.png" id="vending-machine" class="absolute inset-0 w-full h-full object-contain cursor-pointer transition-opacity duration-300 z-30 hint-pulse" alt="販賣機">
+
+                <div id="split-state" class="absolute inset-0 w-full h-full opacity-0 pointer-events-none transition-opacity duration-300 z-20">
+                    <img src="卡片.png" id="popping-card" class="absolute top-[30%] left-[20%] w-[60%] object-contain z-10 pointer-events-none drop-shadow-xl" alt="恭喜小卡">
+                    <img src="罐子_下.png" id="can-bottom" class="absolute bottom-0 w-full object-contain object-bottom z-20" alt="罐子下半部">
+                    <img src="罐子_上.png" id="can-top" class="absolute top-0 left-[15%] w-full object-contain object-top z-30" alt="罐子上半部">
+                </div>
+            </div>
+
+            <!-- ================= BACK: 背面 (九宮格測驗) ================= -->
+            <div class="absolute inset-0 backface-hidden rotate-y-180 z-40">
+                <!-- 九宮格底圖 -->
+                <img src="九宮格問題.png" class="absolute inset-0 w-full h-full object-contain" alt="九宮格測驗">
+                
+                <!-- 👑 定位微調區塊 -->
+                <!-- 如果按鈕沒對準圈圈，請修改這邊的 top, bottom, left, right 百分比 -->
+                <!-- 舉例：覺得框框整體太高，就把 top-[35%] 往下調整成 top-[38%] 試試看 -->
+                <div id="grid-buttons-container" class="absolute top-[52.5%] bottom-[18%] left-[19%] right-[15.5%] grid grid-cols-3 grid-rows-3 gap-2 md:gap-x-4 gap-y-1 z-60">
+                    <!-- JavaScript 將生成按鈕在這 -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ================= MODAL: 卡片放大燈箱 ================= -->
+    <div id="card-modal" class="fixed inset-0 bg-black/80 z-50 hidden flex-col items-center justify-center opacity-0 transition-opacity duration-300 backdrop-blur-md">
+        <div id="modal-content" class="w-[85%] max-w-[360px] flex flex-col items-center transform scale-90 transition-transform duration-500">
+            <img src="卡片.png" class="w-full h-auto rounded-2xl shadow-2xl mb-8" alt="完整小卡內容">
+            <button id="flip-btn" class="bg-red-600 hover:bg-red-700 text-white font-black text-lg py-4 px-10 rounded-full shadow-[0_4px_15px_rgba(220,38,38,0.5)] transform transition hover:scale-105 active:scale-95 tracking-widest">
+                進入測驗
+            </button>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: 題目與投票燈箱 ================= -->
+    <div id="question-modal" class="fixed inset-0 bg-black/80 z-[60] hidden flex-col items-center justify-center opacity-0 transition-opacity duration-300 backdrop-blur-md">
+        
+        <div id="question-content" class="bg-[#e4e2dd] w-[90%] max-w-[340px] h-[80vh] max-h-[650px] rounded-[2.5rem] shadow-2xl p-6 flex flex-col relative transform scale-90 transition-transform duration-500 overflow-hidden border-[8px] border-[#1c1c1e]">
+            
+            <div class="flex items-center gap-3 mb-6 mt-2">
+                <div class="w-4 h-4 bg-[#5eb4f0] rounded-full shrink-0"></div>
+                <p class="text-gray-700 font-bold text-sm leading-tight">請根據心裡出現的<br>第一個答案作答</p>
+            </div>
+
+            <!-- 視圖 1：題目與選項 (預設顯示) -->
+            <div id="quiz-view" class="flex flex-col flex-1 transition-opacity duration-300">
+                <h2 id="quiz-title" class="text-[1.35rem] font-black text-gray-900 mb-6 leading-snug tracking-wide">
+                    載入中...
+                </h2>
+
+                <div id="quiz-options-container" class="flex flex-col gap-4 flex-1">
+                    <!-- 選項會生成在這裡 -->
+                </div>
+
+                <div class="mt-auto pt-4 pb-2 flex justify-center opacity-0 transition-opacity duration-500 pointer-events-none" id="next-btn-container">
+                    <!-- 修改了這顆按鈕的點擊事件，改為觸發秀出解析 -->
+                    <button class="bg-[#f4d03f] text-gray-900 font-black px-8 py-2 rounded-full shadow-md hover:bg-[#e5c234] transition-colors active:scale-95" onclick="showExplanation()">
+                        Next >>>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 視圖 2：解析畫面 (預設隱藏) -->
+            <div id="explanation-view" class="hidden flex-col flex-1 opacity-0 transition-all duration-500 transform translate-y-4">
+                <h2 class="text-xl font-black text-[#b33225] border-b-2 border-[#b33225] pb-2 mb-4 inline-block self-start">
+                    測驗解析
+                </h2>
+                
+                <!-- 解析內容 -->
+                <p id="quiz-explanation" class="text-gray-800 text-[0.95rem] leading-relaxed font-medium flex-1 overflow-y-auto pr-2">
+                    載入中...
+                </p>
+
+                <div class="mt-auto pt-4 pb-2 flex justify-center">
+                    <button class="bg-[#f4d03f] text-gray-900 font-black px-8 py-2 rounded-full shadow-md hover:bg-[#e5c234] transition-colors active:scale-95" onclick="closeQuestionModal()">
+                        完成測驗
+                    </button>
+                </div>
+            </div>
+            
+            <div class="mt-4 flex justify-between items-center border-t border-gray-300 pt-3">
+                <div class="w-full h-1 bg-white rounded-full mr-4 opacity-70"></div>
+                <div class="flex gap-2 text-white drop-shadow-sm opacity-80">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" /></svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 互動邏輯 (JavaScript) ================= -->
+    <script>
+        // ======= 題庫資料設定 (加入了 explanation 欄位) =======
+        const quizData = {
+            1: {
+                title: "為什麼我們不太會對東南亞移工說「謝謝你愛台灣」？",
+                options: [
+                    { text: "A. 移工是來工作的，跟「愛不愛台灣」沒關係", percent: 45 },
+                    { text: "B. 外國人來台灣可以幫忙台灣特色帶回去他們的國家，讓更多人知道台灣，這才算愛台灣吧", percent: 10 }
+                ],
+                explanation: "這是因為我們常常在無意識中，將移工視為純粹的「勞動力提供者」，而忽略了他們對這塊土地也可能懷抱著情感與認同。打破這個慣性思考，有助於我們用更平等且溫暖的眼光來看待身邊不同國籍的夥伴。"
+            },
+            2: {
+                title: "如果今天路上遇到需要幫忙的外國人，你的直覺反應是？",
+                options: [
+                    { text: "A. 熱心上前用英文詢問是否需要協助", percent: 60 },
+                    { text: "B. 怕自己英文不好，默默走開", percent: 35 },
+                    { text: "C. 尋求旁邊的人一起幫忙", percent: 5 }
+                ],
+                explanation: "台灣人普遍以熱情著稱，但有時候會因為「語言障礙」的慣性恐懼而卻步。其實，一個微笑、簡單的手勢，或是尋求翻譯軟體的幫忙，都能突破這層心理障礙，展現真正的台灣人情味。"
+            },
+            3: {
+                title: "你認為在台灣，哪一種文化最能代表台灣精神？",
+                options: [
+                    { text: "A. 夜市與在地小吃文化", percent: 55 },
+                    { text: "B. 人情味與互相幫忙的習慣", percent: 45 }
+                ],
+                explanation: "無論是美食還是人情味，都是我們生活中的日常。但有趣的是，當我們被問到這個問題時，往往會陷入「二選一」的慣性。其實，包容多元並蓄的特質，才是台灣最核心的價值！"
+            }
+        };
+
+        const defaultQuiz = {
+            title: "這是一道隨機的隱藏測試題，請根據直覺選擇！",
+            options: [
+                { text: "A. 這是預設的選項 A", percent: 70 },
+                { text: "B. 這是預設的選項 B", percent: 30 }
+            ],
+            explanation: "這是一段預設的解析文字。當你點擊任何一個沒有特別設定題目的九宮格按鈕時，就會看到這個畫面。"
+        };
+
+        const canWrapper = document.getElementById('can-wrapper');
+        const vendingMachine = document.getElementById('vending-machine');
+        const poppingCard = document.getElementById('popping-card');
+        const modal = document.getElementById('card-modal');
+        const modalContent = document.getElementById('modal-content');
+        const flipBtn = document.getElementById('flip-btn');
+        const titleArea = document.getElementById('title-area');
+        const restartBtn = document.getElementById('restart-btn');
+        
+        const questionModal = document.getElementById('question-modal');
+        const questionContent = document.getElementById('question-content');
+        const nextBtnContainer = document.getElementById('next-btn-container');
+        const gridContainer = document.getElementById('grid-buttons-container');
+
+        // 視圖切換所需的 DOM
+        const quizView = document.getElementById('quiz-view');
+        const explanationView = document.getElementById('explanation-view');
+
+        let isCanOpen = false;
+
+        // 👑 動態生成九宮格按鈕 (包含微調用邊框)
+        for(let i = 1; i <= 9; i++) {
+            const btn = document.createElement('button');
+            
+            // ==========================================
+            // 💡【位置微調技巧與邊框開關】
+            // 目前我加入了 border-dashed border-2 border-blue-500 bg-blue-500/20 讓框框現形。
+            // 調整好位置（修改上方 HTML 的 top, bottom, left, right）後，
+            // 請將這行 className 替換回透明版：
+            // btn.className = "w-full h-full rounded-full bg-black/0 hover:bg-white/30 hover:backdrop-blur-sm transition-all duration-300 flex items-center justify-center group focus:outline-none focus:ring-4 focus:ring-white/50";
+            // ==========================================
+            
+            btn.className = "w-full h-full rounded-full border-2 border-dashed border-blue-500 bg-blue-500/20 hover:bg-blue-500/40 hover:backdrop-blur-sm transition-all duration-300 flex items-center justify-center group focus:outline-none focus:ring-4 focus:ring-white/50";
+            
+            btn.onclick = () => openQuestionModal(i);
+            btn.innerHTML = `<span class="opacity-0 group-hover:opacity-100 text-white font-bold text-xl drop-shadow-md transition-opacity pointer-events-none">GO</span>`;
+            gridContainer.appendChild(btn);
+        }
+
+        // 開罐與燈箱邏輯
+        vendingMachine.addEventListener('click', () => {
+            if (isCanOpen) return;
+            canWrapper.classList.add('is-open');
+            vendingMachine.classList.remove('hint-pulse');
+            isCanOpen = true;
+        });
+
+        poppingCard.addEventListener('click', (e) => {
+            if (!isCanOpen) return;
+            e.stopPropagation();
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.classList.add('opacity-100');
+                modalContent.classList.remove('scale-90');
+                modalContent.classList.add('scale-100');
+            }, 10);
+        });
+
+        flipBtn.addEventListener('click', () => {
+            modal.classList.remove('opacity-100');
+            modal.classList.add('opacity-0');
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-90');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                canWrapper.classList.remove('is-open');
+                titleArea.classList.add('opacity-0');
+                setTimeout(() => { canWrapper.classList.add('rotate-y-180'); }, 400); 
+            }, 300);
+        });
+
+        function openQuestionModal(questionId) {
+            const currentQuiz = quizData[questionId] || defaultQuiz;
+
+            // 寫入題目與解析
+            document.getElementById('quiz-title').innerText = currentQuiz.title;
+            document.getElementById('quiz-explanation').innerText = currentQuiz.explanation;
+
+            const optionsContainer = document.getElementById('quiz-options-container');
+            optionsContainer.innerHTML = ''; 
+            
+            currentQuiz.options.forEach(opt => {
+                const optHtml = `
+                    <button class="quiz-option relative w-full bg-[#b33225] text-white text-left p-5 rounded-2xl shadow-sm transition-transform hover:scale-[1.02] active:scale-[0.98] overflow-hidden group" data-percent="${opt.percent}" onclick="selectOption(this)">
+                        <div class="progress-bar absolute top-0 bottom-0 left-0 bg-[#8e281d] w-0 transition-all duration-1000 ease-out z-0"></div>
+                        <div class="relative z-10 flex justify-between items-center gap-4">
+                            <span class="option-text text-[0.9rem] font-medium leading-relaxed transition-colors duration-500">${opt.text}</span>
+                            <span class="percentage hidden font-black text-2xl drop-shadow-md">${opt.percent}%</span>
+                        </div>
+                    </button>
+                `;
+                optionsContainer.insertAdjacentHTML('beforeend', optHtml);
+            });
+
+            nextBtnContainer.classList.add('opacity-0', 'pointer-events-none');
+
+            // 確保每次開啟都是顯示「題目視圖」，隱藏「解析視圖」
+            quizView.classList.remove('hidden', 'opacity-0');
+            quizView.classList.add('flex');
+            explanationView.classList.remove('flex', 'opacity-100');
+            explanationView.classList.add('hidden', 'opacity-0', 'translate-y-4');
+
+            questionModal.classList.remove('hidden');
+            questionModal.classList.add('flex');
+            setTimeout(() => {
+                questionModal.classList.remove('opacity-0');
+                questionModal.classList.add('opacity-100');
+                questionContent.classList.remove('scale-90');
+                questionContent.classList.add('scale-100');
+            }, 10);
+        }
+
+        function selectOption(selectedBtn) {
+            const allOptions = document.querySelectorAll('.quiz-option');
+            
+            allOptions.forEach(btn => {
+                btn.removeAttribute('onclick');
+                btn.classList.remove('hover:scale-[1.02]', 'active:scale-[0.98]');
+                btn.style.cursor = 'default';
+                
+                const textSpan = btn.querySelector('.option-text');
+                textSpan.classList.add('text-white/40');
+                
+                const percentValue = btn.getAttribute('data-percent');
+                const progressBar = btn.querySelector('.progress-bar');
+                const percentText = btn.querySelector('.percentage');
+                
+                setTimeout(() => {
+                    progressBar.style.width = percentValue + '%';
+                    percentText.classList.remove('hidden');
+                }, 50); 
+            });
+
+            setTimeout(() => {
+                nextBtnContainer.classList.remove('opacity-0', 'pointer-events-none');
+            }, 800);
+        }
+
+        // 切換到解析畫面
+        function showExplanation() {
+            // 淡出題目
+            quizView.classList.add('opacity-0');
+            
+            setTimeout(() => {
+                // 隱藏題目，顯示解析區塊
+                quizView.classList.add('hidden');
+                quizView.classList.remove('flex');
+                
+                explanationView.classList.remove('hidden');
+                explanationView.classList.add('flex');
+                
+                // 延遲一點點再觸發淡入與向上滑入的動畫
+                setTimeout(() => {
+                    explanationView.classList.remove('opacity-0', 'translate-y-4');
+                    explanationView.classList.add('opacity-100', 'translate-y-0');
+                }, 50);
+            }, 300); // 等待題目淡出的時間
+        }
+
+        function closeQuestionModal() {
+            questionModal.classList.remove('opacity-100');
+            questionModal.classList.add('opacity-0');
+            questionContent.classList.remove('scale-100');
+            questionContent.classList.add('scale-90');
+            setTimeout(() => {
+                questionModal.classList.add('hidden');
+                questionModal.classList.remove('flex');
+            }, 300);
+        }
+
+        restartBtn.addEventListener('click', () => {
+            isCanOpen = false;
+
+            modal.classList.add('hidden', 'opacity-0');
+            modal.classList.remove('flex', 'opacity-100');
+            modalContent.classList.add('scale-90');
+            modalContent.classList.remove('scale-100');
+
+            questionModal.classList.add('hidden', 'opacity-0');
+            questionModal.classList.remove('flex', 'opacity-100');
+            questionContent.classList.add('scale-90');
+            questionContent.classList.remove('scale-100');
+
+            canWrapper.classList.remove('is-open', 'rotate-y-180');
+            vendingMachine.classList.add('hint-pulse');
+            titleArea.classList.remove('opacity-0');
+        });
+    </script>
+</body>
+</html>
